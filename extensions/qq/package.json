@@ -1,0 +1,43 @@
+{
+  "name": "@moltbot/qq",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "QQ channel plugin for Moltbot (via NapCatQQ/OneBot v11)",
+  "moltbot": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "channel": {
+      "id": "qq",
+      "label": "QQ",
+      "selectionLabel": "QQ (NapCatQQ/OneBot)",
+      "docsPath": "/channels/qq",
+      "docsLabel": "qq",
+      "blurb": "QQ messaging via NapCatQQ/OneBot v11 protocol.",
+      "order": 80
+    },
+    "install": {
+      "localPath": "extensions/qq",
+      "defaultChoice": "local"
+    }
+  },
+  "keywords": [
+    "moltbot",
+    "qq",
+    "napcat",
+    "onebot",
+    "channel"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.13",
+    "vitest": "^2.0.0"
+  }
+}
