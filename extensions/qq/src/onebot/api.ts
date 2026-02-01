@@ -368,6 +368,45 @@ export class OneBotApi {
       event_type: eventType,
     });
   }
+
+  // ==========================================================================
+  // File Upload APIs (NapCatQQ Extension)
+  // ==========================================================================
+
+  /**
+   * Upload a file to private chat.
+   * @param userId Target user ID
+   * @param file File path or base64 data (base64://...)
+   * @param name Display name for the file
+   */
+  async uploadPrivateFile(userId: number, file: string, name: string): Promise<void> {
+    await this.client.callApi("upload_private_file", {
+      user_id: userId,
+      file,
+      name,
+    });
+  }
+
+  /**
+   * Upload a file to group chat.
+   * @param groupId Target group ID
+   * @param file File path or base64 data (base64://...)
+   * @param name Display name for the file
+   * @param folder Folder ID (optional, for uploading to specific folder)
+   */
+  async uploadGroupFile(
+    groupId: number,
+    file: string,
+    name: string,
+    folder?: string,
+  ): Promise<void> {
+    await this.client.callApi("upload_group_file", {
+      group_id: groupId,
+      file,
+      name,
+      folder,
+    });
+  }
 }
 
 // ============================================================================

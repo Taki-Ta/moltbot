@@ -410,4 +410,55 @@ describe("OneBotApi", () => {
       });
     });
   });
+
+  describe("uploadPrivateFile", () => {
+    it("uploads file to private chat", async () => {
+      const client = createMockClient();
+      const api = new OneBotApi(client);
+
+      vi.mocked(client.callApi).mockResolvedValue(undefined);
+
+      await api.uploadPrivateFile(12345, "base64://abc123", "test.pdf");
+
+      expect(client.callApi).toHaveBeenCalledWith("upload_private_file", {
+        user_id: 12345,
+        file: "base64://abc123",
+        name: "test.pdf",
+      });
+    });
+  });
+
+  describe("uploadGroupFile", () => {
+    it("uploads file to group chat", async () => {
+      const client = createMockClient();
+      const api = new OneBotApi(client);
+
+      vi.mocked(client.callApi).mockResolvedValue(undefined);
+
+      await api.uploadGroupFile(67890, "base64://abc123", "test.pdf");
+
+      expect(client.callApi).toHaveBeenCalledWith("upload_group_file", {
+        group_id: 67890,
+        file: "base64://abc123",
+        name: "test.pdf",
+        folder: undefined,
+      });
+    });
+
+    it("uploads file to specific folder", async () => {
+      const client = createMockClient();
+      const api = new OneBotApi(client);
+
+      vi.mocked(client.callApi).mockResolvedValue(undefined);
+
+      await api.uploadGroupFile(67890, "base64://abc123", "test.pdf", "folder123");
+
+      expect(client.callApi).toHaveBeenCalledWith("upload_group_file", {
+        group_id: 67890,
+        file: "base64://abc123",
+        name: "test.pdf",
+        folder: "folder123",
+      });
+    });
+  });
 });

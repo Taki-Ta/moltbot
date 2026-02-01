@@ -31,6 +31,7 @@ function createMockApi(overrides: Partial<OneBotApi> = {}): OneBotApi {
     sendPrivateMsg: vi.fn().mockResolvedValue({ message_id: 100 }),
     sendGroupMsg: vi.fn().mockResolvedValue({ message_id: 200 }),
     setInputStatus: vi.fn().mockResolvedValue(undefined),
+    uploadPrivateFile: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   } as unknown as OneBotApi;
 }
@@ -180,18 +181,32 @@ describe("sendQQMediaMessage", () => {
     ]);
   });
 
-  it("handles file type with fallback text", async () => {
+  it("handles file type with uploadPrivateFile API", async () => {
     const api = createMockApi();
 
-    await sendQQMediaMessage(api, {
+    const result = await sendQQMediaMessage(api, {
       target: "qq:12345",
       mediaType: "file",
       file: "https://example.com/doc.pdf",
     });
 
-    expect(api.sendPrivateMsg).toHaveBeenCalledWith(12345, [
-      { type: "text", data: { text: `[文件] ${expectedBase64}` } },
-    ]);
+    expect(result.ok).toBe(true);
+    expect(api.uploadPrivateFile).toHaveBeenCalledWith(12345, expectedBase64, "doc.pdf");
+  });
+
+  it("rejects file upload to group chat", async () => {
+    const api = createMockApi();
+
+    const result = await sendQQMediaMessage(api, {
+      target: "qq:group:67890",
+      mediaType: "file",
+      file: "https://example.com/doc.pdf",
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain("not supported");
+    }
   });
 
   it("includes reply segment when replyToMessageId is provided", async () => {
@@ -335,6 +350,34 @@ describe("convenience functions", () => {
       expect(api.sendGroupMsg).toHaveBeenCalledWith(67890, [
         { type: "image", data: { file: expectedBase64 } },
       ]);
+    });
+  });
+
+  describe("sendPrivateFile", () => {
+    const expectedBase64 = `base64://${Buffer.from("fake-image-data").toString("base64")}`;
+
+    it("sends file to user", async () => {
+      const { sendPrivateFile } = await import("./send.js");
+      const api = createMockApi();
+
+      const result = await sendPrivateFile(
+        api,
+        12345,
+        "https://example.com/doc.pdf",
+        "document.pdf",
+      );
+
+      expect(result.ok).toBe(true);
+      expect(api.uploadPrivateFile).toHaveBeenCalledWith(12345, expectedBase64, "document.pdf");
+    });
+
+    it("extracts filename from URL when not provided", async () => {
+      const { sendPrivateFile } = await import("./send.js");
+      const api = createMockApi();
+
+      await sendPrivateFile(api, 12345, "https://example.com/report.pdf");
+
+      expect(api.uploadPrivateFile).toHaveBeenCalledWith(12345, expectedBase64, "report.pdf");
     });
   });
 });

@@ -33,6 +33,8 @@ export interface SendMediaMessageOptions extends SendMessageOptions {
   file: string;
   /** Optional caption for the media */
   caption?: string;
+  /** Optional filename (used for file type, extracted from URL if not provided) */
+  filename?: string;
 }
 
 // ============================================================================
@@ -151,6 +153,7 @@ export async function sendQQTextMessage(
 /**
  * Send a media message to a QQ target.
  * Downloads the media and converts to base64 for NapCatQQ compatibility.
+ * For file type, uses upload_private_file API.
  */
 export async function sendQQMediaMessage(
   api: OneBotApi,
@@ -169,6 +172,32 @@ export async function sendQQMediaMessage(
     const media = await loadWebMedia(options.file);
     const base64File = `base64://${media.buffer.toString("base64")}`;
 
+    // For file type, use upload_private_file API (only supports private chat)
+    if (options.mediaType === "file") {
+      if (target.type === "group") {
+        return {
+          ok: false,
+          error: "File upload to groups is not supported",
+        };
+      }
+
+      // Extract filename from URL or use provided filename
+      const filename = options.filename ?? extractFilename(options.file);
+      await api.uploadPrivateFile(target.id, base64File, filename);
+
+      // Send caption as separate text message if provided
+      if (options.caption) {
+        await sendMessage(api, target, [{ type: "text", data: { text: options.caption } }]);
+      }
+
+      return {
+        ok: true,
+        messageId: "file-upload", // upload_private_file doesn't return message_id
+        chatId: formatQQTarget(target),
+      };
+    }
+
+    // For other media types, use message segments
     const segments = buildMediaSegments(
       options.mediaType,
       base64File,
@@ -188,6 +217,23 @@ export async function sendQQMediaMessage(
       error: err instanceof Error ? err.message : String(err),
     };
   }
+}
+
+/**
+ * Extract filename from URL or path.
+ */
+function extractFilename(urlOrPath: string): string {
+  try {
+    const url = new URL(urlOrPath);
+    const pathname = url.pathname;
+    const filename = pathname.split("/").pop();
+    if (filename) return decodeURIComponent(filename);
+  } catch {
+    // Not a URL, treat as path
+    const filename = urlOrPath.split(/[/\\]/).pop();
+    if (filename) return filename;
+  }
+  return "file";
 }
 
 /**
@@ -288,6 +334,25 @@ export async function sendGroupImage(
     target: `qq:group:${groupId}`,
     mediaType: "image",
     file,
+    caption,
+  });
+}
+
+/**
+ * Send a file to a private chat.
+ */
+export async function sendPrivateFile(
+  api: OneBotApi,
+  userId: number,
+  file: string,
+  filename?: string,
+  caption?: string,
+): Promise<QQSendResponse> {
+  return sendQQMediaMessage(api, {
+    target: `qq:${userId}`,
+    mediaType: "file",
+    file,
+    filename,
     caption,
   });
 }
