@@ -355,6 +355,19 @@ export class OneBotApi {
       return false;
     }
   }
+
+  /**
+   * Set input status (typing indicator).
+   * Only works for private chats.
+   * @param userId Target user ID
+   * @param eventType 0=voice, 1=text typing, 2=normal
+   */
+  async setInputStatus(userId: number, eventType: 0 | 1 | 2 = 1): Promise<void> {
+    await this.client.callApi("set_input_status", {
+      user_id: userId,
+      event_type: eventType,
+    });
+  }
 }
 
 // ============================================================================

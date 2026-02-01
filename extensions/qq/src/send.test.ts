@@ -12,13 +12,25 @@ import {
   sendQQMediaMessage,
   sendQQRawMessage,
   sendQQTextMessage,
+  setQQTypingStatus,
 } from "./send.js";
+
+// Mock loadWebMedia from plugin-sdk
+vi.mock("clawdbot/plugin-sdk", () => ({
+  loadWebMedia: vi.fn().mockResolvedValue({
+    buffer: Buffer.from("fake-image-data"),
+    contentType: "image/jpeg",
+    kind: "image",
+    fileName: "image.jpg",
+  }),
+}));
 
 // Mock API factory
 function createMockApi(overrides: Partial<OneBotApi> = {}): OneBotApi {
   return {
     sendPrivateMsg: vi.fn().mockResolvedValue({ message_id: 100 }),
     sendGroupMsg: vi.fn().mockResolvedValue({ message_id: 200 }),
+    setInputStatus: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   } as unknown as OneBotApi;
 }
@@ -107,6 +119,8 @@ describe("sendQQTextMessage", () => {
 });
 
 describe("sendQQMediaMessage", () => {
+  const expectedBase64 = `base64://${Buffer.from("fake-image-data").toString("base64")}`;
+
   it("sends image to private chat", async () => {
     const api = createMockApi();
 
@@ -118,7 +132,7 @@ describe("sendQQMediaMessage", () => {
 
     expect(result.ok).toBe(true);
     expect(api.sendPrivateMsg).toHaveBeenCalledWith(12345, [
-      { type: "image", data: { file: "https://example.com/image.jpg" } },
+      { type: "image", data: { file: expectedBase64 } },
     ]);
   });
 
@@ -133,7 +147,7 @@ describe("sendQQMediaMessage", () => {
     });
 
     expect(api.sendPrivateMsg).toHaveBeenCalledWith(12345, [
-      { type: "image", data: { file: "https://example.com/image.jpg" } },
+      { type: "image", data: { file: expectedBase64 } },
       { type: "text", data: { text: "Look at this!" } },
     ]);
   });
@@ -148,7 +162,7 @@ describe("sendQQMediaMessage", () => {
     });
 
     expect(api.sendPrivateMsg).toHaveBeenCalledWith(12345, [
-      { type: "record", data: { file: "https://example.com/voice.mp3" } },
+      { type: "record", data: { file: expectedBase64 } },
     ]);
   });
 
@@ -162,7 +176,7 @@ describe("sendQQMediaMessage", () => {
     });
 
     expect(api.sendGroupMsg).toHaveBeenCalledWith(67890, [
-      { type: "video", data: { file: "https://example.com/video.mp4" } },
+      { type: "video", data: { file: expectedBase64 } },
     ]);
   });
 
@@ -176,7 +190,7 @@ describe("sendQQMediaMessage", () => {
     });
 
     expect(api.sendPrivateMsg).toHaveBeenCalledWith(12345, [
-      { type: "text", data: { text: "[文件] https://example.com/doc.pdf" } },
+      { type: "text", data: { text: `[文件] ${expectedBase64}` } },
     ]);
   });
 
@@ -192,7 +206,7 @@ describe("sendQQMediaMessage", () => {
 
     expect(api.sendPrivateMsg).toHaveBeenCalledWith(12345, [
       { type: "reply", data: { id: "888" } },
-      { type: "image", data: { file: "https://example.com/image.jpg" } },
+      { type: "image", data: { file: expectedBase64 } },
     ]);
   });
 
@@ -289,6 +303,8 @@ describe("convenience functions", () => {
   });
 
   describe("sendPrivateImage", () => {
+    const expectedBase64 = `base64://${Buffer.from("fake-image-data").toString("base64")}`;
+
     it("sends image to user", async () => {
       const api = createMockApi();
 
@@ -301,13 +317,15 @@ describe("convenience functions", () => {
 
       expect(result.ok).toBe(true);
       expect(api.sendPrivateMsg).toHaveBeenCalledWith(12345, [
-        { type: "image", data: { file: "https://example.com/img.jpg" } },
+        { type: "image", data: { file: expectedBase64 } },
         { type: "text", data: { text: "Check this out!" } },
       ]);
     });
   });
 
   describe("sendGroupImage", () => {
+    const expectedBase64 = `base64://${Buffer.from("fake-image-data").toString("base64")}`;
+
     it("sends image to group", async () => {
       const api = createMockApi();
 
@@ -315,8 +333,35 @@ describe("convenience functions", () => {
 
       expect(result.ok).toBe(true);
       expect(api.sendGroupMsg).toHaveBeenCalledWith(67890, [
-        { type: "image", data: { file: "https://example.com/img.jpg" } },
+        { type: "image", data: { file: expectedBase64 } },
       ]);
     });
+  });
+});
+
+describe("setQQTypingStatus", () => {
+  it("sets typing status to true", async () => {
+    const api = createMockApi();
+
+    await setQQTypingStatus(api, 12345, true);
+
+    expect(api.setInputStatus).toHaveBeenCalledWith(12345, 1);
+  });
+
+  it("sets typing status to false (normal)", async () => {
+    const api = createMockApi();
+
+    await setQQTypingStatus(api, 12345, false);
+
+    expect(api.setInputStatus).toHaveBeenCalledWith(12345, 2);
+  });
+
+  it("silently ignores errors", async () => {
+    const api = createMockApi({
+      setInputStatus: vi.fn().mockRejectedValue(new Error("API not supported")),
+    });
+
+    // Should not throw
+    await expect(setQQTypingStatus(api, 12345, true)).resolves.toBeUndefined();
   });
 });

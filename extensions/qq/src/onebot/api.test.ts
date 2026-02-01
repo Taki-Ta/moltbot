@@ -366,4 +366,48 @@ describe("OneBotApi", () => {
       expect(result).toBe(false);
     });
   });
+
+  describe("setInputStatus", () => {
+    it("sets typing status (text input)", async () => {
+      const client = createMockClient();
+      const api = new OneBotApi(client);
+
+      vi.mocked(client.callApi).mockResolvedValue(undefined);
+
+      await api.setInputStatus(12345, 1);
+
+      expect(client.callApi).toHaveBeenCalledWith("set_input_status", {
+        user_id: 12345,
+        event_type: 1,
+      });
+    });
+
+    it("sets normal status", async () => {
+      const client = createMockClient();
+      const api = new OneBotApi(client);
+
+      vi.mocked(client.callApi).mockResolvedValue(undefined);
+
+      await api.setInputStatus(12345, 2);
+
+      expect(client.callApi).toHaveBeenCalledWith("set_input_status", {
+        user_id: 12345,
+        event_type: 2,
+      });
+    });
+
+    it("defaults to text input (1)", async () => {
+      const client = createMockClient();
+      const api = new OneBotApi(client);
+
+      vi.mocked(client.callApi).mockResolvedValue(undefined);
+
+      await api.setInputStatus(12345);
+
+      expect(client.callApi).toHaveBeenCalledWith("set_input_status", {
+        user_id: 12345,
+        event_type: 1,
+      });
+    });
+  });
 });

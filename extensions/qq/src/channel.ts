@@ -8,6 +8,7 @@ import type { ChannelPlugin, MoltbotConfig } from "clawdbot/plugin-sdk";
 import {
   applyAccountNameToChannelSection,
   buildChannelConfigSchema,
+  createTypingCallbacks,
   DEFAULT_ACCOUNT_ID,
   migrateBaseNameToDefaultAccount,
   normalizeAccountId,
@@ -23,7 +24,7 @@ import { QQConfigSchema, QQ_DEFAULT_WS_URL } from "./config-schema.js";
 import { QQConnectionManager, createConnectionManager } from "./connection.js";
 import { parseQQTarget, normalizeQQMessagingTarget, looksLikeQQTargetId } from "./normalize.js";
 import { qqOnboardingAdapter } from "./onboarding.js";
-import { sendQQTextMessage, sendQQMediaMessage } from "./send.js";
+import { sendQQTextMessage, sendQQMediaMessage, setQQTypingStatus } from "./send.js";
 import { isBotMentioned, removeBotMention } from "./monitor.js";
 import { getQQRuntime } from "./runtime.js";
 import type {
@@ -308,6 +309,31 @@ export const qqPlugin: ChannelPlugin<ResolvedQQAccount> = {
             currentCfg,
             route.agentId,
           );
+
+          // Create typing callbacks (only for private chats)
+          const typingCallbacks = isPrivate
+            ? createTypingCallbacks({
+                start: async () => {
+                  const api = manager.getApi();
+                  if (api) await setQQTypingStatus(api, message.senderId, true);
+                },
+                stop: async () => {
+                  const api = manager.getApi();
+                  if (api) await setQQTypingStatus(api, message.senderId, false);
+                },
+                onStartError: (err) => {
+                  ctx.log?.debug?.(
+                    `[${accountId}] typing start failed: ${String(err)}`,
+                  );
+                },
+                onStopError: (err) => {
+                  ctx.log?.debug?.(
+                    `[${accountId}] typing stop failed: ${String(err)}`,
+                  );
+                },
+              })
+            : undefined;
+
           const { dispatcher, replyOptions, markDispatchIdle } =
             core.channel.reply.createReplyDispatcherWithTyping({
               humanDelay,
@@ -345,6 +371,8 @@ export const qqPlugin: ChannelPlugin<ResolvedQQAccount> = {
                   `[${accountId}] ${info.kind} reply failed: ${String(err)}`,
                 );
               },
+              onReplyStart: typingCallbacks?.onReplyStart,
+              onIdle: typingCallbacks?.onIdle,
             });
 
           // Dispatch to auto-reply pipeline
@@ -460,7 +488,7 @@ export const qqPlugin: ChannelPlugin<ResolvedQQAccount> = {
   // Outbound Adapter - Sending Messages
   // ==========================================================================
   outbound: {
-    deliveryMode: "direct",
+    deliveryMode: "gateway",
     textChunkLimit: 4000,
 
     sendText: async ({ to, text, accountId, replyToId }) => {

@@ -4,6 +4,7 @@
  * Handles sending text and media messages via OneBot API.
  */
 
+import { loadWebMedia } from "clawdbot/plugin-sdk";
 import type { OneBotApi } from "./onebot/api.js";
 import type { OneBotMessageSegment, OneBotSendMsgResponse } from "./onebot/types.js";
 import { formatQQTarget, parseQQTarget, type ParsedQQTarget } from "./normalize.js";
@@ -149,6 +150,7 @@ export async function sendQQTextMessage(
 
 /**
  * Send a media message to a QQ target.
+ * Downloads the media and converts to base64 for NapCatQQ compatibility.
  */
 export async function sendQQMediaMessage(
   api: OneBotApi,
@@ -163,9 +165,13 @@ export async function sendQQMediaMessage(
   }
 
   try {
+    // Load media and convert to base64 for NapCatQQ compatibility
+    const media = await loadWebMedia(options.file);
+    const base64File = `base64://${media.buffer.toString("base64")}`;
+
     const segments = buildMediaSegments(
       options.mediaType,
-      options.file,
+      base64File,
       options.caption,
       options.replyToMessageId,
     );
@@ -284,4 +290,26 @@ export async function sendGroupImage(
     file,
     caption,
   });
+}
+
+// ============================================================================
+// Typing Status
+// ============================================================================
+
+/**
+ * Set typing status for a private chat.
+ * Only works for private chats (OneBot v11 limitation).
+ * Silently ignores errors since not all implementations support this API.
+ */
+export async function setQQTypingStatus(
+  api: OneBotApi,
+  userId: number,
+  typing: boolean,
+): Promise<void> {
+  try {
+    // 0=voice, 1=text typing, 2=normal
+    await api.setInputStatus(userId, typing ? 1 : 2);
+  } catch {
+    // Silently ignore - not all OneBot implementations support this
+  }
 }
