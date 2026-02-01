@@ -11,7 +11,7 @@ import {
   MarkdownConfigSchema,
   ToolPolicySchema,
   normalizeAllowFrom,
-} from "clawdbot/plugin-sdk";
+} from "openclaw/plugin-sdk";
 
 // ============================================================================
 // Local Schema Definitions (not exported from plugin-sdk)

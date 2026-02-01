@@ -12,7 +12,7 @@ import {
   type ChannelOnboardingDmPolicy,
   type MoltbotConfig,
   type WizardPrompter,
-} from "clawdbot/plugin-sdk";
+} from "openclaw/plugin-sdk";
 
 import {
   isQQAccountConfigured,

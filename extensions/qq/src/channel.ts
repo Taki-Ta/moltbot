@@ -4,7 +4,7 @@
  * Complete ChannelPlugin implementation for QQ via NapCatQQ/OneBot v11.
  */
 
-import type { ChannelPlugin, MoltbotConfig } from "clawdbot/plugin-sdk";
+import type { ChannelPlugin, MoltbotConfig } from "openclaw/plugin-sdk";
 import {
   applyAccountNameToChannelSection,
   buildChannelConfigSchema,
@@ -12,7 +12,7 @@ import {
   DEFAULT_ACCOUNT_ID,
   migrateBaseNameToDefaultAccount,
   normalizeAccountId,
-} from "clawdbot/plugin-sdk";
+} from "openclaw/plugin-sdk";
 
 import {
   listQQAccountIds,

@@ -4,7 +4,7 @@
  * Handles sending text and media messages via OneBot API.
  */
 
-import { loadWebMedia } from "clawdbot/plugin-sdk";
+import { loadWebMedia } from "openclaw/plugin-sdk";
 import type { OneBotApi } from "./onebot/api.js";
 import type { OneBotMessageSegment, OneBotSendMsgResponse } from "./onebot/types.js";
 import { formatQQTarget, parseQQTarget, type ParsedQQTarget } from "./normalize.js";

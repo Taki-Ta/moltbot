@@ -16,7 +16,7 @@ import {
 } from "./send.js";
 
 // Mock loadWebMedia from plugin-sdk
-vi.mock("clawdbot/plugin-sdk", () => ({
+vi.mock("openclaw/plugin-sdk", () => ({
   loadWebMedia: vi.fn().mockResolvedValue({
     buffer: Buffer.from("fake-image-data"),
     contentType: "image/jpeg",
